@@ -1,7 +1,6 @@
 import request from 'supertest';
 import app from '@/index';
 import { prisma } from '@/config/database';
-import { Frequency, ActivityStatus } from '@/types';
 
 describe('Activity Endpoints', () => {
   let authToken: string;
@@ -48,7 +47,6 @@ describe('Activity Endpoints', () => {
       expect(response.body.message).toBe('Activity created successfully');
       expect(response.body.data.title).toBe(activityData.title);
       expect(response.body.data.frequency).toBe(activityData.frequency);
-      expect(response.body.data.status).toBe('TODO');
 
       testActivityId = response.body.data.id;
     });
@@ -70,6 +68,42 @@ describe('Activity Endpoints', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.frequency).toBe('WEEKLY');
       expect(response.body.data.startDate).toBe(activityData.startDate);
+    });
+
+    it('should create an activity with duration and category', async () => {
+      const activityData = {
+        title: 'Reading Session',
+        description: 'Read technical documentation',
+        frequency: 'DAILY',
+        duration: 60,
+        category: 'Learning',
+      };
+
+      const response = await request(app)
+        .post('/api/v1/activities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(activityData)
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.title).toBe(activityData.title);
+      expect(response.body.data.duration).toBe(activityData.duration);
+      expect(response.body.data.category).toBe(activityData.category);
+    });
+
+    it('should return 400 for invalid duration', async () => {
+      const activityData = {
+        title: 'Test Activity',
+        duration: -10,
+      };
+
+      const response = await request(app)
+        .post('/api/v1/activities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(activityData)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
     });
 
     it('should return 400 for invalid frequency', async () => {
@@ -114,16 +148,29 @@ describe('Activity Endpoints', () => {
       ).toBe(true);
     });
 
-    it('should filter activities by status', async () => {
+    it('should filter activities by category', async () => {
       const response = await request(app)
-        .get('/api/v1/activities?status=TODO')
+        .get('/api/v1/activities?category=Learning')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(
-        response.body.data.every((activity: any) => activity.status === 'TODO')
+        response.body.data.every((activity: any) => activity.category === 'Learning')
       ).toBe(true);
+    });
+  });
+
+  describe('GET /api/v1/activities/categories', () => {
+    it('should get all unique categories for the user', async () => {
+      const response = await request(app)
+        .get('/api/v1/activities/categories')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data).toContain('Learning');
     });
   });
 
@@ -182,36 +229,22 @@ describe('Activity Endpoints', () => {
       expect(response.body.data.title).toBe(updateData.title);
       expect(response.body.data.description).toBe(updateData.description);
     });
-  });
 
-  describe('PATCH /api/v1/activities/:id/status', () => {
-    it('should update activity status successfully', async () => {
-      const statusData = {
-        status: 'IN_PROGRESS',
+    it('should update activity duration and category', async () => {
+      const updateData = {
+        duration: 90,
+        category: 'Fitness',
       };
 
       const response = await request(app)
-        .patch(`/api/v1/activities/${testActivityId}/status`)
+        .put(`/api/v1/activities/${testActivityId}`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send(statusData)
+        .send(updateData)
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.status).toBe(statusData.status);
-    });
-
-    it('should return 400 for invalid status', async () => {
-      const statusData = {
-        status: 'INVALID_STATUS',
-      };
-
-      const response = await request(app)
-        .patch(`/api/v1/activities/${testActivityId}/status`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send(statusData)
-        .expect(400);
-
-      expect(response.body.success).toBe(false);
+      expect(response.body.data.duration).toBe(updateData.duration);
+      expect(response.body.data.category).toBe(updateData.category);
     });
   });
 

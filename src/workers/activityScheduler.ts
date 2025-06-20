@@ -15,20 +15,20 @@ export class ActivityScheduler {
   /**
    * Create activity logs for daily activities
    */
-  static async createDailyActivityLogs(): Promise<void> {
+  static async createDailyActivityLogs(targetDate?: Date | string): Promise<void> {
     try {
       const prisma = databaseConnection.getClient();
-      const today = dayjs().startOf('day');
+      const targetDay = targetDate ? dayjs(targetDate).startOf('day') : dayjs().startOf('day');
 
-      // Get all daily activities that should be active today
+      // Get all daily activities that should be active on the target date
       const dailyActivities = await prisma.activity.findMany({
         where: {
           frequency: Frequency.DAILY,
           OR: [
             { startDate: null },
-            { startDate: { lte: today.toDate() } },
+            { startDate: { lte: targetDay.toDate() } },
             { endDate: null },
-            { endDate: { gte: today.toDate() } },
+            { endDate: { gte: targetDay.toDate() } },
           ],
         },
         include: {
@@ -37,14 +37,14 @@ export class ActivityScheduler {
       });
 
       logger.info(
-        `Found ${dailyActivities.length} daily activities to process`
+        `Found ${dailyActivities.length} daily activities to process for ${targetDay.format('YYYY-MM-DD')}`
       );
 
       for (const activity of dailyActivities) {
-        const startDate = today.toDate();
-        const endDate = today.endOf('day').toDate();
+        const startDate = targetDay.toDate();
+        const endDate = targetDay.endOf('day').toDate();
 
-        // Check if activity log already exists for today
+        // Check if activity log already exists for the target date
         const existingLog = await prisma.activityLog.findFirst({
           where: {
             activityId: activity.id,
@@ -63,10 +63,11 @@ export class ActivityScheduler {
               startDate,
               endDate,
               status: ActivityStatus.TODO,
+              duration: activity.duration,
             },
           });
 
-          logger.info(`Created daily activity log for: ${activity.title}`);
+          logger.info(`Created daily activity log for: ${activity.title} on ${targetDay.format('YYYY-MM-DD')}`);
         }
       }
     } catch (error) {
@@ -78,19 +79,19 @@ export class ActivityScheduler {
   /**
    * Create activity logs for weekly activities (on Sunday)
    */
-  static async createWeeklyActivityLogs(): Promise<void> {
+  static async createWeeklyActivityLogs(targetDate?: Date | string): Promise<void> {
     try {
       const prisma = databaseConnection.getClient();
-      const today = dayjs();
+      const targetDay = targetDate ? dayjs(targetDate) : dayjs();
 
-      // Only create weekly logs on Sunday (day 0)
-      if (today.day() !== 0) {
+      // Only create weekly logs on Sunday (day 0) unless a specific date is provided
+      if (!targetDate && targetDay.day() !== 0) {
         logger.info('Not Sunday, skipping weekly activity log creation');
         return;
       }
 
-      const weekStart = today.startOf('week');
-      const weekEnd = today.endOf('week');
+      const weekStart = targetDay.startOf('week');
+      const weekEnd = targetDay.endOf('week');
 
       // Get all weekly activities that should be active this week
       const weeklyActivities = await prisma.activity.findMany({
@@ -109,7 +110,7 @@ export class ActivityScheduler {
       });
 
       logger.info(
-        `Found ${weeklyActivities.length} weekly activities to process`
+        `Found ${weeklyActivities.length} weekly activities to process for week starting ${weekStart.format('YYYY-MM-DD')}`
       );
 
       for (const activity of weeklyActivities) {
@@ -135,10 +136,11 @@ export class ActivityScheduler {
               startDate,
               endDate,
               status: ActivityStatus.TODO,
+              duration: activity.duration,
             },
           });
 
-          logger.info(`Created weekly activity log for: ${activity.title}`);
+          logger.info(`Created weekly activity log for: ${activity.title} for week starting ${weekStart.format('YYYY-MM-DD')}`);
         }
       }
     } catch (error) {
@@ -150,19 +152,19 @@ export class ActivityScheduler {
   /**
    * Create activity logs for monthly activities (on 1st of month)
    */
-  static async createMonthlyActivityLogs(): Promise<void> {
+  static async createMonthlyActivityLogs(targetDate?: Date | string): Promise<void> {
     try {
       const prisma = databaseConnection.getClient();
-      const today = dayjs();
+      const targetDay = targetDate ? dayjs(targetDate) : dayjs();
 
-      // Only create monthly logs on the 1st of the month
-      if (today.date() !== 1) {
+      // Only create monthly logs on the 1st of the month unless a specific date is provided
+      if (!targetDate && targetDay.date() !== 1) {
         logger.info('Not 1st of month, skipping monthly activity log creation');
         return;
       }
 
-      const monthStart = today.startOf('month');
-      const monthEnd = today.endOf('month');
+      const monthStart = targetDay.startOf('month');
+      const monthEnd = targetDay.endOf('month');
 
       // Get all monthly activities that should be active this month
       const monthlyActivities = await prisma.activity.findMany({
@@ -181,7 +183,7 @@ export class ActivityScheduler {
       });
 
       logger.info(
-        `Found ${monthlyActivities.length} monthly activities to process`
+        `Found ${monthlyActivities.length} monthly activities to process for month starting ${monthStart.format('YYYY-MM-DD')}`
       );
 
       for (const activity of monthlyActivities) {
@@ -207,10 +209,11 @@ export class ActivityScheduler {
               startDate,
               endDate,
               status: ActivityStatus.TODO,
+              duration: activity.duration,
             },
           });
 
-          logger.info(`Created monthly activity log for: ${activity.title}`);
+          logger.info(`Created monthly activity log for: ${activity.title} for month starting ${monthStart.format('YYYY-MM-DD')}`);
         }
       }
     } catch (error) {
@@ -222,15 +225,16 @@ export class ActivityScheduler {
   /**
    * Main scheduler function to be called at midnight
    */
-  static async runScheduler(): Promise<void> {
+  static async runScheduler(targetDate?: Date | string): Promise<void> {
     try {
-      logger.info('Starting activity scheduler...');
+      const dateStr = targetDate ? dayjs(targetDate).format('YYYY-MM-DD') : 'today';
+      logger.info(`Starting activity scheduler for ${dateStr}...`);
 
-      await this.createDailyActivityLogs();
-      await this.createWeeklyActivityLogs();
-      await this.createMonthlyActivityLogs();
+      await this.createDailyActivityLogs(targetDate);
+      await this.createWeeklyActivityLogs(targetDate);
+      await this.createMonthlyActivityLogs(targetDate);
 
-      logger.info('Activity scheduler completed successfully');
+      logger.info(`Activity scheduler completed successfully for ${dateStr}`);
     } catch (error) {
       logger.error('Activity scheduler failed:', error);
       throw error;

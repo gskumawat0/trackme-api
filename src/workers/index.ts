@@ -37,25 +37,25 @@ class WorkerManager {
   private async setupJobHandlers(): Promise<void> {
     try {
       // Handle daily activity scheduling
-      await this.boss.work(JOB_NAMES.DAILY_SCHEDULER, async (jobs) => {
+      await this.boss.work(JOB_NAMES.DAILY_SCHEDULER, async (_jobs) => {
         logger.info('Processing daily activity scheduler job');
         await ActivityScheduler.createDailyActivityLogs();
       });
 
       // Handle weekly activity scheduling
-      await this.boss.work(JOB_NAMES.WEEKLY_SCHEDULER, async (jobs) => {
+      await this.boss.work(JOB_NAMES.WEEKLY_SCHEDULER, async (_jobs) => {
         logger.info('Processing weekly activity scheduler job');
         await ActivityScheduler.createWeeklyActivityLogs();
       });
 
       // Handle monthly activity scheduling
-      await this.boss.work(JOB_NAMES.MONTHLY_SCHEDULER, async (jobs) => {
+      await this.boss.work(JOB_NAMES.MONTHLY_SCHEDULER, async (_jobs) => {
         logger.info('Processing monthly activity scheduler job');
         await ActivityScheduler.createMonthlyActivityLogs();
       });
 
       // Handle main midnight scheduler
-      await this.boss.work(JOB_NAMES.MIDNIGHT_SCHEDULER, async (jobs) => {
+      await this.boss.work(JOB_NAMES.MIDNIGHT_SCHEDULER, async (_jobs) => {
         logger.info('Processing midnight activity scheduler job');
         await ActivityScheduler.runScheduler();
       });

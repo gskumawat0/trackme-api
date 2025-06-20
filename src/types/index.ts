@@ -28,6 +28,8 @@ export interface Activity {
   title: string;
   description?: string | null;
   frequency: Frequency;
+  duration?: number | null;
+  category?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
   userId: string;
@@ -44,6 +46,8 @@ export interface CreateActivityRequest {
   title: string;
   description?: string;
   frequency?: Frequency;
+  duration?: number;
+  category?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -52,6 +56,8 @@ export interface UpdateActivityRequest {
   title?: string;
   description?: string;
   frequency?: Frequency;
+  duration?: number;
+  category?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -63,6 +69,7 @@ export interface ActivityLog {
   startDate: Date;
   endDate: Date;
   status: ActivityStatus;
+  duration?: number | null;
   userId: string;
   createdAt: Date;
   updatedAt: Date;

@@ -325,7 +325,7 @@ export const generateTodayActivityLogs = async (
     // Check if daily logs should be generated (skip Saturday=6 and Sunday=0)
     const dayOfWeek = today.getDay();
     if (dayOfWeek !== 6 && dayOfWeek !== 0) {
-      await ActivityScheduler.createDailyActivityLogs();
+      await ActivityScheduler.createDailyActivityLogs(today);
       frequencies.push('daily');
     } else {
       logger.info(`Skipping daily log generation for day of week: ${dayOfWeek}`);
@@ -333,7 +333,7 @@ export const generateTodayActivityLogs = async (
 
     // Generate weekly logs if it's Sunday (day 0)
     if (dayOfWeek === 0) {
-      await ActivityScheduler.createWeeklyActivityLogs();
+      await ActivityScheduler.createWeeklyActivityLogs(today);
       frequencies.push('weekly');
     }
 
@@ -341,7 +341,7 @@ export const generateTodayActivityLogs = async (
     const month = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
     const dayOfMonth = today.getDate();
     if (dayOfMonth === 1 && month !== 18 && month !== 19 && month !== 20) {
-      await ActivityScheduler.createMonthlyActivityLogs();
+      await ActivityScheduler.createMonthlyActivityLogs(today);
       frequencies.push('monthly');
     } else if (dayOfMonth === 1 && (month === 18 || month === 19 || month === 20)) {
       logger.info(`Skipping monthly log generation for month: ${month}`);
@@ -385,75 +385,84 @@ export const generateActivityLogs = async (
     if (!req.user) {
       throw createError('User not authenticated', 401);
     }
-
+    
+    // Fallback to single date generation (existing behavior)
     const { date } = req.body;
     const targetDate = date ? new Date(date) : new Date();
     targetDate.setHours(0, 0, 0, 0);
 
     logger.info(`Manual activity log generation requested by user: ${req.user.id} for date: ${targetDate.toISOString()}`);
 
-    let created = 0;
-    let skipped = 0;
-    const frequencies: string[] = [];
-
-    // Get user's excluded intervals
-    const excludedIntervals = await getUserExcludedIntervals(req.user.id);
-
-    // Check if daily logs should be generated
-    const dayOfWeek = targetDate.getDay();
-    if (!shouldSkipGeneration('DAILY', targetDate, excludedIntervals)) {
-      await ActivityScheduler.createDailyActivityLogs();
-      frequencies.push('daily');
-    } else {
-      logger.info(`Skipping daily log generation for day of week: ${dayOfWeek}`);
-    }
-
-    // Generate weekly logs if it's Sunday (day 0)
-    if (dayOfWeek === 0) {
-      await ActivityScheduler.createWeeklyActivityLogs();
-      frequencies.push('weekly');
-    }
-
-    // Check if monthly logs should be generated
-    const month = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    const dayOfMonth = targetDate.getDate();
-    if (dayOfMonth === 1 && !shouldSkipGeneration('MONTHLY', targetDate, excludedIntervals)) {
-      await ActivityScheduler.createMonthlyActivityLogs();
-      frequencies.push('monthly');
-    } else if (dayOfMonth === 1 && shouldSkipGeneration('MONTHLY', targetDate, excludedIntervals)) {
-      logger.info(`Skipping monthly log generation for month: ${month}`);
-    }
-
-    // Count logs created for the target date
-    const nextDay = new Date(targetDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const logs = await prisma.activityLog.findMany({
-      where: {
-        userId: req.user.id,
-        startDate: {
-          gte: targetDate,
-          lt: nextDay,
-        },
-      },
-    });
-
-    created = logs.length;
+    const result = await generateLogsForDate(targetDate, req.user.id);
 
     res.json({
       success: true,
-      message: `Activity logs generated successfully for: ${frequencies.join(', ')}`,
+      message: `Activity logs generated successfully for: ${result.frequencies.join(', ')}`,
       data: {
-        created,
-        skipped,
+        created: result.created,
+        skipped: result.skipped,
         date: targetDate.toISOString().split('T')[0] || targetDate.toDateString(),
-        frequencies,
+        frequencies: result.frequencies,
       },
     });
+    
   } catch (error) {
     logger.error('Error generating activity logs:', error);
     next(error);
   }
+};
+
+// Helper function to generate logs for a specific date
+const generateLogsForDate = async (targetDate: Date, userId: string) => {
+  let created = 0;
+  let skipped = 0;
+  const frequencies: string[] = [];
+
+  // Get user's excluded intervals
+  const excludedIntervals = await getUserExcludedIntervals(userId);
+
+  // Check if daily logs should be generated
+  const dayOfWeek = targetDate.getDay();
+  if (!shouldSkipGeneration('DAILY', targetDate, excludedIntervals)) {
+    await ActivityScheduler.createDailyActivityLogs(targetDate);
+    frequencies.push('daily');
+  } else {
+    logger.info(`Skipping daily log generation for day of week: ${dayOfWeek}`);
+  }
+
+  // Generate weekly logs if it's Sunday (day 0)
+  if (dayOfWeek === 0) {
+    await ActivityScheduler.createWeeklyActivityLogs(targetDate);
+    frequencies.push('weekly');
+  }
+
+  // Check if monthly logs should be generated
+  const month = targetDate.getMonth() + 1; // getMonth() returns 0-11, so add 1
+  const dayOfMonth = targetDate.getDate();
+  if (dayOfMonth === 1 && !shouldSkipGeneration('MONTHLY', targetDate, excludedIntervals)) {
+    await ActivityScheduler.createMonthlyActivityLogs(targetDate);
+    frequencies.push('monthly');
+  } else if (dayOfMonth === 1 && shouldSkipGeneration('MONTHLY', targetDate, excludedIntervals)) {
+    logger.info(`Skipping monthly log generation for month: ${month}`);
+  }
+
+  // Count logs created for the target date
+  const nextDay = new Date(targetDate);
+  nextDay.setDate(nextDay.getDate() + 1);
+
+  const logs = await prisma.activityLog.findMany({
+    where: {
+      userId,
+      startDate: {
+        gte: targetDate,
+        lt: nextDay,
+      },
+    },
+  });
+
+  created = logs.length;
+
+  return { created, skipped, frequencies };
 };
 
 // Helper function to get excluded intervals for a user
@@ -466,12 +475,17 @@ const getUserExcludedIntervals = async (userId: string) => {
     .filter((ei: any) => ei.frequency === 'DAILY' && ei.type === 'DAY_OF_WEEK')
     .map((ei: any) => ei.value);
 
+  const weeklyExcludedWeeks = excludedIntervals
+    .filter((ei: any) => ei.frequency === 'WEEKLY' && ei.type === 'WEEK_OF_YEAR')
+    .map((ei: any) => ei.value);
+
   const monthlyExcludedMonths = excludedIntervals
     .filter((ei: any) => ei.frequency === 'MONTHLY' && ei.type === 'MONTH')
     .map((ei: any) => ei.value);
 
   return {
     dailyExcludedDays,
+    weeklyExcludedWeeks,
     monthlyExcludedMonths,
   };
 };
@@ -480,11 +494,17 @@ const getUserExcludedIntervals = async (userId: string) => {
 const shouldSkipGeneration = (
   frequency: string,
   date: Date,
-  excludedIntervals: { dailyExcludedDays: number[]; monthlyExcludedMonths: number[] }
+  excludedIntervals: { dailyExcludedDays: number[]; weeklyExcludedWeeks: number[]; monthlyExcludedMonths: number[] }
 ): boolean => {
   if (frequency === 'DAILY') {
     const dayOfWeek = date.getDay();
     return excludedIntervals.dailyExcludedDays.includes(dayOfWeek);
+  }
+  
+  if (frequency === 'WEEKLY') {
+    // Get the week number (1-52) for the given date
+    const weekNumber = getWeekNumber(date);
+    return excludedIntervals.weeklyExcludedWeeks.includes(weekNumber);
   }
   
   if (frequency === 'MONTHLY') {
@@ -493,6 +513,15 @@ const shouldSkipGeneration = (
   }
   
   return false;
+};
+
+// Helper function to get week number (1-52)
+const getWeekNumber = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 };
 
 export const getExcludedIntervals = async (
@@ -535,6 +564,10 @@ export const addExcludedInterval = async (
     // Validate the value based on type
     if (type === 'DAY_OF_WEEK' && (value < 0 || value > 6)) {
       throw createError('Day of week must be between 0 (Sunday) and 6 (Saturday)', 400);
+    }
+
+    if (type === 'WEEK_OF_YEAR' && (value < 1 || value > 52)) {
+      throw createError('Week of year must be between 1 and 52', 400);
     }
 
     if (type === 'MONTH' && (value < 1 || value > 12)) {
@@ -648,6 +681,40 @@ export const getPendingActivityLogs = async (
       success: true,
       message: 'Pending activity logs retrieved successfully',
       data: pendingActivityLogs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createActivityLog = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<ActivityLog>>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw createError('User not authenticated', 401);
+    }
+    const { activityId, startDate, endDate, status } = req.body;
+    const activity = await prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) {
+      throw createError('Parent activity not found', 404);
+    }
+    const activityLog = await prisma.activityLog.create({
+      data: {
+        activityId,
+        userId: req.user.id,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        status: status ?? 'TODO',
+        duration: activity.duration ?? null,
+      },
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Activity log created successfully',
+      data: activityLog,
     });
   } catch (error) {
     next(error);

@@ -15,6 +15,15 @@ export const createActivitySchema = yup.object({
     .string()
     .oneOf(Object.values(Frequency), 'Invalid frequency')
     .default(Frequency.DAILY),
+  duration: yup
+    .number()
+    .positive('Duration must be positive')
+    .integer('Duration must be an integer')
+    .optional(),
+  category: yup
+    .string()
+    .max(100, 'Category must be less than 100 characters')
+    .optional(),
   startDate: yup.date().optional(),
   endDate: yup
     .date()
@@ -36,6 +45,15 @@ export const updateActivitySchema = yup.object({
     .string()
     .oneOf(Object.values(Frequency), 'Invalid frequency')
     .optional(),
+  duration: yup
+    .number()
+    .positive('Duration must be positive')
+    .integer('Duration must be an integer')
+    .optional(),
+  category: yup
+    .string()
+    .max(100, 'Category must be less than 100 characters')
+    .optional(),
   startDate: yup.date().optional(),
   endDate: yup
     .date()
@@ -47,6 +65,10 @@ export const activityQuerySchema = yup.object({
   frequency: yup
     .string()
     .oneOf(Object.values(Frequency), 'Invalid frequency')
+    .optional(),
+  category: yup
+    .string()
+    .max(100, 'Category must be less than 100 characters')
     .optional(),
   includeRollover: yup
     .boolean()

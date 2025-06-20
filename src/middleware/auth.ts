@@ -11,7 +11,6 @@ export const authenticateToken = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    console.log('authHeader', authHeader);
     const token = extractTokenFromHeader(authHeader);
 
     if (!token) {

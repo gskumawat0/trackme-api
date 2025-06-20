@@ -5,6 +5,8 @@ import {
   getActivity,
   updateActivity,
   deleteActivity,
+  getCategories,
+  getActivitiesByFrequencyGroup,
 } from '@/controllers/activityController';
 import { authenticateToken } from '@/middleware/auth';
 import {
@@ -26,6 +28,12 @@ router.use(authenticateToken);
 
 // GET /api/v1/activities - Get all activities (with filtering)
 router.get('/', validateQuery(activityQuerySchema), getActivities);
+
+// GET /api/v1/activities/categories - Get all unique categories
+router.get('/categories', getCategories);
+
+// GET /api/v1/activities/grouped - Get activities grouped by frequency
+router.get('/grouped', getActivitiesByFrequencyGroup);
 
 // POST /api/v1/activities - Create a new activity
 router.post('/', validate(createActivitySchema), createActivity);

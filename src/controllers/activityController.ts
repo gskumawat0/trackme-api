@@ -25,12 +25,19 @@ export const createActivity = async (
       throw createError('User not authenticated', 401);
     }
     const activityData = req.body as CreateActivityRequest;
+    
+    // Convert dates to ISO format if they exist
+    const startDate = activityData.startDate ? new Date(activityData.startDate).toISOString() : null;
+    const endDate = activityData.endDate ? new Date(activityData.endDate).toISOString() : null;
+    
     const activity = await prisma.activity.create({
       data: {
         ...activityData,
         description: activityData.description ?? null,
-        startDate: activityData.startDate ?? null,
-        endDate: activityData.endDate ?? null,
+        duration: activityData.duration ?? null,
+        category: activityData.category ?? null,
+        startDate,
+        endDate,
         userId: req.user.id,
       },
     });
@@ -54,10 +61,12 @@ export const getActivities = async (
       throw createError('User not authenticated', 401);
     }
     const frequency = req.query['frequency'] as string | undefined;
+    const category = req.query['category'] as string | undefined;
     const startDate = req.query['startDate'] as string | undefined;
     const endDate = req.query['endDate'] as string | undefined;
     const where: Record<string, unknown> = { userId: req.user.id };
     if (frequency) where['frequency'] = frequency;
+    if (category) where['category'] = category;
     if (startDate) where['startDate'] = { gte: new Date(startDate) };
     if (endDate) where['endDate'] = { lte: new Date(endDate) };
     const activities = await prisma.activity.findMany({
@@ -149,10 +158,20 @@ export const updateActivity = async (
       updatePayload['description'] = updateData['description'] ?? null;
     if ('frequency' in updateData)
       updatePayload['frequency'] = updateData['frequency'];
-    if ('startDate' in updateData)
-      updatePayload['startDate'] = updateData['startDate'] ?? null;
-    if ('endDate' in updateData)
-      updatePayload['endDate'] = updateData['endDate'] ?? null;
+    if ('duration' in updateData)
+      updatePayload['duration'] = updateData['duration'] ?? null;
+    if ('category' in updateData)
+      updatePayload['category'] = updateData['category'] ?? null;
+    if ('startDate' in updateData) {
+      updatePayload['startDate'] = updateData['startDate'] 
+        ? new Date(updateData['startDate']).toISOString() 
+        : null;
+    }
+    if ('endDate' in updateData) {
+      updatePayload['endDate'] = updateData['endDate'] 
+        ? new Date(updateData['endDate']).toISOString() 
+        : null;
+    }
     const activity = await prisma.activity.updateMany({
       where: {
         id,
@@ -201,6 +220,44 @@ export const deleteActivity = async (
     res.json({
       success: true,
       message: 'Activity deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCategories = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<string[]>>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw createError('User not authenticated', 401);
+    }
+    
+    const categories = await prisma.activity.findMany({
+      where: {
+        userId: req.user.id,
+        category: {
+          not: null,
+        },
+      },
+      select: {
+        category: true,
+      },
+      distinct: ['category'],
+    });
+    
+    const categoryList = categories
+      .map(item => item.category)
+      .filter((category): category is string => category !== null)
+      .sort();
+    
+    res.json({
+      success: true,
+      message: 'Categories retrieved successfully',
+      data: categoryList,
     });
   } catch (error) {
     next(error);

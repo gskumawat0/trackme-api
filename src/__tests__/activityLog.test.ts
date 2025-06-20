@@ -52,6 +52,7 @@ describe('ActivityLog API', () => {
   describe('GET /api/v1/activity-logs', () => {
     it('should get activity logs for authenticated user', async () => {
       // Create a test activity log
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -59,6 +60,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -74,6 +76,7 @@ describe('ActivityLog API', () => {
 
     it('should filter activity logs by activity ID', async () => {
       // Create activity logs
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -81,6 +84,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -95,6 +99,7 @@ describe('ActivityLog API', () => {
 
     it('should filter activity logs by status', async () => {
       // Create activity logs with different statuses
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -102,6 +107,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -122,6 +128,7 @@ describe('ActivityLog API', () => {
 
   describe('GET /api/v1/activity-logs/:id', () => {
     it('should get a specific activity log', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -129,6 +136,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -152,6 +160,7 @@ describe('ActivityLog API', () => {
 
   describe('PATCH /api/v1/activity-logs/:id/status', () => {
     it('should update activity log status', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -159,6 +168,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -173,6 +183,7 @@ describe('ActivityLog API', () => {
     });
 
     it('should return 400 for invalid status', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -180,6 +191,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -193,6 +205,7 @@ describe('ActivityLog API', () => {
 
   describe('POST /api/v1/activity-logs/:id/comments', () => {
     it('should add a comment to activity log', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -200,6 +213,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -214,6 +228,7 @@ describe('ActivityLog API', () => {
     });
 
     it('should return 400 for empty comment', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -221,6 +236,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -234,6 +250,7 @@ describe('ActivityLog API', () => {
 
   describe('GET /api/v1/activity-logs/:id/comments', () => {
     it('should get comments for activity log', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -241,6 +258,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 
@@ -264,6 +282,7 @@ describe('ActivityLog API', () => {
 
   describe('DELETE /api/v1/activity-logs/:id/comments/:commentId', () => {
     it('should delete a comment', async () => {
+      const activity = await prisma.activity.findUnique({ where: { id: testActivity.id } });
       const activityLog = await prisma.activityLog.create({
         data: {
           activityId: testActivity.id,
@@ -271,6 +290,7 @@ describe('ActivityLog API', () => {
           startDate: new Date(),
           endDate: new Date(),
           status: ActivityStatus.TODO,
+          duration: activity?.duration ?? null,
         },
       });
 

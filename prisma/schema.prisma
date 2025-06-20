@@ -31,6 +31,8 @@ model Activity {
   title       String
   description String?
   frequency   Frequency    @default(DAILY)
+  duration    Int?         // Duration in minutes
+  category    String?      // Category name
   startDate   DateTime?
   endDate     DateTime?
   createdAt   DateTime     @default(now())
@@ -50,6 +52,7 @@ model ActivityLog {
   startDate   DateTime
   endDate     DateTime
   status      ActivityStatus @default(TODO)
+  duration    Int?         // Duration in minutes (copied from activity)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -106,5 +109,6 @@ enum ActivityStatus {
 
 enum ExcludedIntervalType {
   DAY_OF_WEEK
+  WEEK_OF_YEAR
   MONTH
 } 

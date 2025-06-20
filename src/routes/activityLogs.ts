@@ -12,6 +12,7 @@ import {
   addExcludedInterval,
   deleteExcludedInterval,
   getPendingActivityLogs,
+  createActivityLog,
 } from '@/controllers/activityLogController';
 import { authenticateToken } from '@/middleware/auth';
 import {
@@ -25,6 +26,9 @@ import {
   activityLogQuerySchema,
   activityLogParamsSchema,
   activityLogCommentParamsSchema,
+  createExcludedIntervalSchema,
+  excludedIntervalParamsSchema,
+  generateActivityLogsSchema,
 } from '@/validations/activityLog';
 
 const router = Router();
@@ -36,16 +40,16 @@ router.use(authenticateToken);
 router.post('/generate-today', generateTodayActivityLogs);
 
 // POST /api/v1/activity-logs/generate - Manually generate activity logs for specific date/frequency
-router.post('/generate', generateActivityLogs);
+router.post('/generate', validate(generateActivityLogsSchema), generateActivityLogs);
 
 // GET /api/v1/activity-logs/excluded-intervals - Get user's excluded intervals
 router.get('/excluded-intervals', getExcludedIntervals);
 
 // POST /api/v1/activity-logs/excluded-intervals - Add an excluded interval
-router.post('/excluded-intervals', addExcludedInterval);
+router.post('/excluded-intervals', validate(createExcludedIntervalSchema), addExcludedInterval);
 
 // DELETE /api/v1/activity-logs/excluded-intervals/:id - Delete an excluded interval
-router.delete('/excluded-intervals/:id', deleteExcludedInterval);
+router.delete('/excluded-intervals/:id', validateParams(excludedIntervalParamsSchema), deleteExcludedInterval);
 
 // GET /api/v1/activity-logs - Get all activity logs with optional filtering
 router.get('/', validateQuery(activityLogQuerySchema), getActivityLogs);
@@ -85,5 +89,8 @@ router.delete(
   validateParams(activityLogCommentParamsSchema),
   deleteActivityLogComment
 );
+
+// POST /api/v1/activity-logs - Create a new activity log
+router.post('/', createActivityLog);
 
 export default router;
