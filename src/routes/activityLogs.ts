@@ -12,6 +12,7 @@ import {
   addExcludedInterval,
   deleteExcludedInterval,
   getPendingActivityLogs,
+  getTodayActivityLogs,
   createActivityLog,
 } from '@/controllers/activityLogController';
 import { authenticateToken } from '@/middleware/auth';
@@ -56,6 +57,9 @@ router.get('/', validateQuery(activityLogQuerySchema), getActivityLogs);
 
 // GET /api/v1/activity-logs/pending - Get all pending activity logs (not DONE)
 router.get('/pending', validateQuery(activityLogQuerySchema), getPendingActivityLogs);
+
+// GET /api/v1/activity-logs/today - Get all activity logs with endDate >= today
+router.get('/today', validateQuery(activityLogQuerySchema), getTodayActivityLogs);
 
 // GET /api/v1/activity-logs/:id - Get a specific activity log
 router.get('/:id', validateParams(activityLogParamsSchema), getActivityLog);

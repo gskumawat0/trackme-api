@@ -720,3 +720,51 @@ export const createActivityLog = async (
     next(error);
   }
 };
+
+export const getTodayActivityLogs = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<ActivityLog[]>>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw createError('User not authenticated', 401);
+    }
+
+    const activityId = req.query['activityId'] as string;
+    const includeComments = req.query['comments'] === 'true';
+
+    // Get today's midnight (start of today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Build where clause - all tasks with endDate >= today midnight (irrespective of status)
+    const where: any = {
+      userId: req.user.id,
+      endDate: {
+        gte: today,
+      },
+    };
+
+    if (activityId) {
+      where.activityId = activityId;
+    }
+
+    const todayActivityLogs = await prisma.activityLog.findMany({
+      where,
+      include: {
+        activity: true,
+        comments: includeComments,
+      },
+      orderBy: { endDate: 'asc' }, // Sort by endDate ascending to show earliest deadlines first
+    });
+
+    res.json({
+      success: true,
+      message: 'Today\'s activity logs retrieved successfully',
+      data: todayActivityLogs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
