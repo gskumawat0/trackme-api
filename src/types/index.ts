@@ -70,6 +70,7 @@ export interface ActivityLog {
   endDate: Date;
   status: ActivityStatus;
   duration?: number | null;
+  completedAt?: Date | null;
   userId: string;
   createdAt: Date;
   updatedAt: Date;

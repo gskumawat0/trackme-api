@@ -53,6 +53,7 @@ model ActivityLog {
   endDate     DateTime
   status      ActivityStatus @default(TODO)
   duration    Int?         // Duration in minutes (copied from activity)
+  completedAt DateTime?    // Timestamp when activity was completed
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 

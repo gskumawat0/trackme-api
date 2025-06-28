@@ -123,12 +123,20 @@ export const updateActivityLogStatus = async (
     const { id } = req.params;
     const { status } = req.body;
 
+    // Prepare update data
+    const updateData: any = { status };
+    
+    // Set completedAt when status is changed to DONE
+    if (status === 'DONE') {
+      updateData.completedAt = new Date();
+    }
+
     const activityLog = await prisma.activityLog.updateMany({
       where: {
         id,
         userId: req.user.id,
       },
-      data: { status },
+      data: updateData,
     });
 
     if (activityLog.count === 0) {
