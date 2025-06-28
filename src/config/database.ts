@@ -24,7 +24,7 @@ class DatabaseConnection {
   public getClient(): PrismaClient {
     if (!this.prismaClient) {
       this.prismaClient = new PrismaClient({
-        log: process.env['NODE_ENV'] === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: ['error'],
       });
 
       // Store in global for development hot reload

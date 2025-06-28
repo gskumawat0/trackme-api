@@ -41,6 +41,14 @@ export const activityLogQuerySchema = yup.object({
     .default(10),
 });
 
+export const todayActivityLogQuerySchema = yup.object({
+  activityId: yup.string().optional(),
+  comments: yup
+    .boolean()
+    .transform((value: any) => value === 'true')
+    .default(false),
+});
+
 export const activityLogParamsSchema = yup.object({
   id: yup.string().required('Activity log ID is required'),
 });

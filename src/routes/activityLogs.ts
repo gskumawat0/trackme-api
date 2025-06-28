@@ -25,6 +25,7 @@ import {
   updateActivityLogStatusSchema,
   createActivityLogCommentSchema,
   activityLogQuerySchema,
+  todayActivityLogQuerySchema,
   activityLogParamsSchema,
   activityLogCommentParamsSchema,
   createExcludedIntervalSchema,
@@ -59,7 +60,7 @@ router.get('/', validateQuery(activityLogQuerySchema), getActivityLogs);
 router.get('/pending', validateQuery(activityLogQuerySchema), getPendingActivityLogs);
 
 // GET /api/v1/activity-logs/today - Get all activity logs with endDate >= today
-router.get('/today', validateQuery(activityLogQuerySchema), getTodayActivityLogs);
+router.get('/today', validateQuery(todayActivityLogQuerySchema), getTodayActivityLogs);
 
 // GET /api/v1/activity-logs/:id - Get a specific activity log
 router.get('/:id', validateParams(activityLogParamsSchema), getActivityLog);
