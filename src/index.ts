@@ -65,8 +65,12 @@ async function startServer() {
     await databaseConnection.connect();
     
     // Start the worker manager
-    await workerManager.start();
-    logger.info('Worker manager started successfully');
+    try {
+      await workerManager.start();
+      logger.info('Worker manager started successfully');
+    } catch (error) {
+      logger.warn('Failed to start worker manager, continuing without background jobs:', error);
+    }
     
     // Start server
     app.listen(PORT, () => {

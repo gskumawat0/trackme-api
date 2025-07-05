@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import logger from './logger';
+import { databaseConfig } from './databaseConfig';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -23,8 +24,17 @@ class DatabaseConnection {
 
   public getClient(): PrismaClient {
     if (!this.prismaClient) {
+      // Use DATABASE_URL if available, otherwise build from components
+      const connectionString = databaseConfig.getConnectionString();
+      
+      
       this.prismaClient = new PrismaClient({
         log: ['error'],
+        datasources: {
+          db: {
+            url: connectionString
+          }
+        }
       });
 
       // Store in global for development hot reload
