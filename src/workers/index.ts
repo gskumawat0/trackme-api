@@ -92,7 +92,7 @@ class WorkerManager {
       await this.ensureQueueExists(JOB_NAMES.MIDNIGHT_SCHEDULER)
       await new Promise((res) => setTimeout(res, 500));
       logger.info('Queue ensured, now scheduling midnight job');
-      await this.boss.schedule(JOB_NAMES.MIDNIGHT_SCHEDULER, '0 5 * * *', {});
+      await this.boss.schedule(JOB_NAMES.MIDNIGHT_SCHEDULER, '30 18 * * *', {});
     } catch (error) {
       logger.error('Failed to schedule midnight job:', error);
       throw error;
