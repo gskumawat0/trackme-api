@@ -52,6 +52,15 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/activities`, activityRoutes);
 app.use(`${API_PREFIX}/activity-logs`, activityLogRoutes);
 
+// Swagger documentation (simple setup)
+const swaggerUi = require('swagger-ui-express');
+const { specs } = require('./config/swagger');
+app.use(`${API_PREFIX}/docs`, swaggerUi.serve);
+app.get(`${API_PREFIX}/docs`, swaggerUi.setup(specs, {
+  explorer: true,
+  customSiteTitle: 'TrackMe API Documentation'
+}));
+
 // 404 handler
 app.use(notFoundHandler);
 
