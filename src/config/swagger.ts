@@ -19,11 +19,11 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api/v1',
+        url: `http://localhost:4000/api/v1`,
         description: 'Development server',
       },
       {
-        url: 'https://trackcity.onrender.com/api/v1',
+        url: 'https://trackme-api.onrender.com/api/v1',
         description: 'Production server',
       },
     ],
